@@ -66,15 +66,12 @@ function HomePage() {
                         <span className="text-gray-300 dark:text-gray-600">·</span>
                       )}
                       {post.tags.map((tag) => (
-                        <Link
+                        <span
                           key={tag}
-                          to="/tags/$tag"
-                          params={{ tag }}
-                          className="text-sm text-gray-400 transition-colors hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
-                          onClick={(e) => e.stopPropagation()}
+                          className="text-sm text-gray-400 dark:text-gray-500"
                         >
                           #{tag}
-                        </Link>
+                        </span>
                       ))}
                     </div>
                     {post.summary && (

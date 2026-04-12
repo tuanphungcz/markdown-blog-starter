@@ -99,12 +99,6 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
                 {siteConfig.title}
               </Link>
               <nav className="flex items-center gap-1">
-                <Link
-                  to="/tags"
-                  className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800/50 dark:hover:text-gray-100"
-                >
-                  Tags
-                </Link>
                 {siteConfig.social.github && (
                   <a
                     href={`https://github.com/${siteConfig.social.github}`}

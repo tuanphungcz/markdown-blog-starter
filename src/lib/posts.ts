@@ -1,19 +1,7 @@
-import { Marked } from "marked";
-import { markedHighlight } from "marked-highlight";
-import hljs from "highlight.js/lib/common";
+import { marked } from "marked";
 import { parse as parseYaml } from "yaml";
 
-const marked = new Marked(
-  { gfm: true },
-  markedHighlight({
-    highlight(code, lang) {
-      if (lang && hljs.getLanguage(lang)) {
-        return hljs.highlight(code, { language: lang }).value;
-      }
-      return hljs.highlightAuto(code).value;
-    },
-  }),
-);
+marked.setOptions({ gfm: true });
 
 export interface Post {
   slug: string;
@@ -113,22 +101,6 @@ export function getPosts(): Post[] {
 
 export function getPost(slug: string): Post | undefined {
   return postsBySlug.get(slug);
-}
-
-export function getPostsByTag(tag: string): Post[] {
-  return posts.filter((post) => post.tags.includes(tag));
-}
-
-export function getAllTags(): { tag: string; count: number }[] {
-  const tagCounts = new Map<string, number>();
-  for (const post of posts) {
-    for (const tag of post.tags) {
-      tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
-    }
-  }
-  return Array.from(tagCounts.entries())
-    .map(([tag, count]) => ({ tag, count }))
-    .sort((a, b) => b.count - a.count);
 }
 
 export function getAdjacentPosts(slug: string): {
