@@ -1,25 +1,31 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { siteConfig } from "@config";
-import { getPost, getPosts, formatDate } from "@/lib/posts";
+import { formatDate, getAdjacentPosts, getPost } from "@/lib/posts";
 
 export const Route = createFileRoute("/$blogid")({
   head: ({ params }) => {
     const post = getPost(params.blogid);
     if (!post) return {};
+
+    const meta = [
+      { title: `${post.title} — ${siteConfig.title}` },
+      { name: "description", content: post.summary },
+      { property: "og:title", content: post.title },
+      { property: "og:description", content: post.summary },
+      { property: "og:type", content: "article" },
+      { name: "twitter:title", content: post.title },
+      { name: "twitter:description", content: post.summary },
+    ];
+
+    if (post.publishedAt) {
+      meta.push({
+        property: "article:published_time",
+        content: post.publishedAt.toISOString(),
+      });
+    }
+
     return {
-      meta: [
-        { title: `${post.title} — ${siteConfig.title}` },
-        { name: "description", content: post.summary },
-        { property: "og:title", content: post.title },
-        { property: "og:description", content: post.summary },
-        { property: "og:type", content: "article" },
-        {
-          property: "article:published_time",
-          content: new Date(post.date).toISOString(),
-        },
-        { name: "twitter:title", content: post.title },
-        { name: "twitter:description", content: post.summary },
-      ],
+      meta,
     };
   },
   component: BlogPost,
@@ -45,11 +51,8 @@ function BlogPost() {
     );
   }
 
-  const allPosts = getPosts();
-  const currentIndex = allPosts.findIndex((p) => p.slug === blogid);
-  const prevPost =
-    currentIndex < allPosts.length - 1 ? allPosts[currentIndex + 1] : null;
-  const nextPost = currentIndex > 0 ? allPosts[currentIndex - 1] : null;
+  const { prevPost, nextPost } = getAdjacentPosts(blogid);
+  const formattedDate = formatDate(post.publishedAt);
 
   return (
     <article>
@@ -59,24 +62,26 @@ function BlogPost() {
           <h1 className="text-2xl font-bold leading-tight tracking-tight text-gray-900 sm:text-3xl dark:text-gray-100">
             {post.title}
           </h1>
-          <div className="mt-3 flex flex-wrap items-center gap-x-2">
-            <time className="text-sm text-gray-400 dark:text-gray-500">
-              {formatDate(post.date)}
-            </time>
-            {post.tags.length > 0 && (
-              <>
+          {(formattedDate || post.tags.length > 0) && (
+            <div className="mt-3 flex flex-wrap items-center gap-x-2">
+              {formattedDate && (
+                <time className="text-sm text-gray-400 dark:text-gray-500">
+                  {formattedDate}
+                </time>
+              )}
+              {formattedDate && post.tags.length > 0 && (
                 <span className="text-gray-300 dark:text-gray-600">·</span>
-                {post.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="text-sm text-gray-400 dark:text-gray-500"
-                  >
-                    #{tag}
-                  </span>
-                ))}
-              </>
-            )}
-          </div>
+              )}
+              {post.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="text-sm text-gray-400 dark:text-gray-500"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </header>
 

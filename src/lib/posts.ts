@@ -1,16 +1,17 @@
 import { marked } from "marked";
+import { parse as parseYaml } from "yaml";
 
 marked.setOptions({ gfm: true });
 
 export interface Post {
   slug: string;
   title: string;
-  date: string;
   summary: string;
   tags: string[];
   draft: boolean;
   content: string;
   html: string;
+  publishedAt: Date | null;
 }
 
 const modules = import.meta.glob("/content/blog/**/*.md", {
@@ -19,86 +20,107 @@ const modules = import.meta.glob("/content/blog/**/*.md", {
   import: "default",
 }) as Record<string, string>;
 
-function parseFrontmatter(raw: string): {
-  data: Record<string, unknown>;
-  content: string;
-} {
-  const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
-  if (!match) return { data: {}, content: raw };
+interface PostFrontmatter {
+  title?: string;
+  date?: string;
+  summary?: string;
+  tags?: string[];
+  draft?: boolean;
+}
 
-  const data: Record<string, unknown> = {};
-  for (const line of match[1].split("\n")) {
-    const idx = line.indexOf(":");
-    if (idx === -1) continue;
-    const key = line.slice(0, idx).trim();
-    let value: unknown = line.slice(idx + 1).trim();
+function parseFrontmatter(
+  raw: string,
+  path: string,
+): { data: PostFrontmatter; content: string } {
+  const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
 
-    // Handle arrays: ["tag1", "tag2"]
-    if (typeof value === "string" && value.startsWith("[")) {
-      try {
-        value = JSON.parse(value.replace(/'/g, '"'));
-      } catch {
-        /* keep as string */
-      }
-    }
-    // Handle booleans
-    if (value === "true") value = true;
-    if (value === "false") value = false;
-    // Strip quotes
-    if (
-      typeof value === "string" &&
-      value.startsWith('"') &&
-      value.endsWith('"')
-    ) {
-      value = value.slice(1, -1);
-    }
-
-    data[key] = value;
+  if (!match) {
+    return { data: {}, content: raw };
   }
 
-  return { data, content: match[2] };
+  try {
+    const parsed = parseYaml(match[1]);
+    const data =
+      parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? (parsed as PostFrontmatter)
+        : {};
+
+    return {
+      data,
+      content: raw.slice(match[0].length),
+    };
+  } catch (error) {
+    throw new Error(`Invalid frontmatter in ${path}`, { cause: error });
+  }
 }
 
-let _cache: Post[] | null = null;
+function parsePublishedAt(value: unknown): Date | null {
+  if (typeof value !== "string" || value.trim() === "") {
+    return null;
+  }
 
-function loadPosts(): Post[] {
-  if (_cache) return _cache;
-
-  _cache = Object.entries(modules)
-    .map(([path, raw]) => {
-      const slug = path.split("/").pop()!.replace(".md", "");
-      const { data, content } = parseFrontmatter(raw);
-      return {
-        slug,
-        title: (data.title as string) || slug,
-        date: (data.date as string) || "",
-        summary: (data.summary as string) || "",
-        tags: Array.isArray(data.tags) ? (data.tags as string[]) : [],
-        draft: data.draft === true,
-        content,
-        html: marked.parse(content) as string,
-      };
-    })
-    .filter((post) => !post.draft)
-    .sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-    );
-
-  return _cache;
+  const publishedAt = new Date(value);
+  return Number.isNaN(publishedAt.getTime()) ? null : publishedAt;
 }
+
+const posts = Object.entries(modules)
+  .map(([path, raw]) => {
+    const slug = path.split("/").pop()!.replace(".md", "");
+    const { data: frontmatter, content } = parseFrontmatter(raw, path);
+
+    return {
+      slug,
+      title: frontmatter.title || slug,
+      summary: frontmatter.summary || "",
+      tags: Array.isArray(frontmatter.tags) ? frontmatter.tags : [],
+      draft: frontmatter.draft === true,
+      content,
+      html: marked.parse(content) as string,
+      publishedAt: parsePublishedAt(frontmatter.date),
+    };
+  })
+  .filter((post) => !post.draft)
+  .sort(
+    (a, b) =>
+      (b.publishedAt?.getTime() ?? Number.NEGATIVE_INFINITY) -
+      (a.publishedAt?.getTime() ?? Number.NEGATIVE_INFINITY),
+  );
+
+const postsBySlug = new Map(posts.map((post) => [post.slug, post]));
 
 export function getPosts(): Post[] {
-  return loadPosts();
+  return posts;
 }
 
 export function getPost(slug: string): Post | undefined {
-  return loadPosts().find((p) => p.slug === slug);
+  return postsBySlug.get(slug);
 }
 
-export function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-US", {
+export function getAdjacentPosts(slug: string): {
+  prevPost: Post | null;
+  nextPost: Post | null;
+} {
+  const currentIndex = posts.findIndex((post) => post.slug === slug);
+
+  if (currentIndex === -1) {
+    return { prevPost: null, nextPost: null };
+  }
+
+  return {
+    prevPost:
+      currentIndex < posts.length - 1 ? posts[currentIndex + 1] : null,
+    nextPost: currentIndex > 0 ? posts[currentIndex - 1] : null,
+  };
+}
+
+export function formatDate(date: Date | null): string | null {
+  if (!date) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
-  });
+  }).format(date);
 }
