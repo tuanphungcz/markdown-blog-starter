@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { siteConfig } from "@config";
 import { formatDate, getAdjacentPosts, getPost } from "@/lib/posts";
+import { getPostOgImageUrl } from "@/lib/og-meta";
 
 export const Route = createFileRoute("/$blogid")({
   head: ({ params }) => {
     const post = getPost(params.blogid);
     if (!post) return {};
+    const ogImageUrl = getPostOgImageUrl(siteConfig.url, post);
 
     const meta = [
       { title: `${post.title} — ${siteConfig.title}` },
@@ -14,10 +16,10 @@ export const Route = createFileRoute("/$blogid")({
       { property: "og:description", content: post.summary },
       { property: "og:type", content: "article" },
       { property: "og:url", content: `${siteConfig.url}/${params.blogid}` },
-      { property: "og:image", content: `${siteConfig.url}/og/${params.blogid}` },
+      { property: "og:image", content: ogImageUrl },
       { name: "twitter:title", content: post.title },
       { name: "twitter:description", content: post.summary },
-      { name: "twitter:image", content: `${siteConfig.url}/og/${params.blogid}` },
+      { name: "twitter:image", content: ogImageUrl },
     ];
 
     if (post.publishedAt) {
