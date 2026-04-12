@@ -3,6 +3,7 @@ main = "@tanstack/react-start/server-entry"
 compatibility_date = "2025-09-02"
 compatibility_flags = ["nodejs_compat"]
 
+# Edit for your domain, or run /setup to configure automatically:
 routes = [
   { pattern = "markdown-blog-starter.tuanph.com/*", zone_name = "tuanph.com" }
 ]
