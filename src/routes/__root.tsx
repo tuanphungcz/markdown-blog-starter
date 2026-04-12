@@ -8,6 +8,13 @@ import {
 } from "@tanstack/react-router";
 import { siteConfig } from "@config";
 import appCss from "@/index.css?url";
+import { getHomeOgImageUrl } from "@/lib/og-meta";
+
+const homeOgImageUrl = getHomeOgImageUrl({
+  siteUrl: siteConfig.url,
+  title: siteConfig.title,
+  description: siteConfig.description,
+});
 
 export const Route = createRootRoute({
   head: () => ({
@@ -21,11 +28,11 @@ export const Route = createRootRoute({
       { property: "og:title", content: siteConfig.title },
       { property: "og:description", content: siteConfig.description },
       { property: "og:url", content: siteConfig.url },
-      { property: "og:image", content: `${siteConfig.url}/og/home` },
+      { property: "og:image", content: homeOgImageUrl },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: siteConfig.title },
       { name: "twitter:description", content: siteConfig.description },
-      { name: "twitter:image", content: `${siteConfig.url}/og/home` },
+      { name: "twitter:image", content: homeOgImageUrl },
     ],
     links: [
       { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
