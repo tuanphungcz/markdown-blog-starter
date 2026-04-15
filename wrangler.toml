@@ -1,14 +1,13 @@
-name = "blog-starter"
+name = "tuanph-com"
 main = "@tanstack/react-start/server-entry"
 compatibility_date = "2025-09-02"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = false
 preview_urls = false
 
-# To use a custom domain, uncomment and edit (or run /setup in Claude Code):
-# routes = [
-#   { pattern = "yourdomain.com/*", zone_name = "yourdomain.com" }
-# ]
+routes = [
+  { pattern = "tuanph.com/*", zone_name = "tuanph.com" }
+]
 
 [observability]
 enabled = true
